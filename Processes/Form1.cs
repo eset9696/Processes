@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Forms.VisualStyles;
 
 namespace Processes
 {
@@ -22,7 +23,8 @@ namespace Processes
 
         void InitProcess()
         {
-            myProcess.StartInfo = new System.Diagnostics.ProcessStartInfo(rtbRunProcess.Text);
+			myProcess = new System.Diagnostics.Process();
+			myProcess.StartInfo = new System.Diagnostics.ProcessStartInfo(rtbRunProcess.Text);
         }
 
         private void btnStart_Click(object sender, EventArgs e)
@@ -31,28 +33,34 @@ namespace Processes
             myProcess.Start();
             listViewProcesses.Items.Add(myProcess.Id.ToString());
             listViewProcesses.Items[listViewProcesses.Items.Count - 1].SubItems.Add(myProcess.ProcessName.ToString());
-            ProcessInfo(myProcess);
-            myProcess = new System.Diagnostics.Process();
+            ProcessInfo();
         }
 
         private void btnStop_Click(object sender, EventArgs e)
         {
-            try
+			int index = listViewProcesses.Items.Count - 1;
+			try
             {
-                myProcess = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(listViewProcesses.Items[listViewProcesses.Items.Count - 1].SubItems[0].Text));
+                if(index < 0) { return; }
+				myProcess = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(listViewProcesses.Items[index].SubItems[0].Text));
+				if (listViewProcesses.SelectedItems.Count > 0)
+				{
+                    index = listViewProcesses.SelectedItems[0].Index;
+					myProcess = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(listViewProcesses.SelectedItems[0].SubItems[0].Text));
+				}
                 myProcess.CloseMainWindow();
                 myProcess.Close();
-                listViewProcesses.Items.RemoveAt(listViewProcesses.Items.Count - 1);
-
+                listViewProcesses.Items.RemoveAt(index);
             }
             catch (Exception currentItemIsNullException)
             {
-                listViewProcesses.Items.RemoveAt(listViewProcesses.Items.Count - 1);
+                listViewProcesses.Items.RemoveAt(index);
             }
             finally 
             {
-				ProcessInfo(listViewProcesses.Items.Count > 0 ? System.Diagnostics.Process.GetProcessById(
-								Convert.ToInt32(listViewProcesses.Items[listViewProcesses.Items.Count - 1].SubItems[0].Text)) : null);
+                myProcess = listViewProcesses.Items.Count > 0 ? System.Diagnostics.Process.GetProcessById(
+                                Convert.ToInt32(listViewProcesses.Items[listViewProcesses.Items.Count - 1].SubItems[0].Text)) : null;
+				ProcessInfo();
 			}
         }
 
@@ -64,16 +72,16 @@ namespace Processes
             }
         }
 
-        void ProcessInfo(System.Diagnostics.Process process)
+        void ProcessInfo()
         {
             if (listViewProcesses.Items.Count > 0)
             {
                 labelProcessInfo.Text = $"Processes count: {listViewProcesses.Items.Count}\n";
-                labelProcessInfo.Text += $"PID: {process.Id}\n";
-                labelProcessInfo.Text += $"Process name: {process.ProcessName}\n";
-                labelProcessInfo.Text += $"Start time: {process.StartTime}\n";
-                labelProcessInfo.Text += $"Processor time: {process.TotalProcessorTime}\n";
-                labelProcessInfo.Text += $"Memory: {process.PagedMemorySize}\n"; 
+                labelProcessInfo.Text += $"PID: {myProcess.Id}\n";
+                labelProcessInfo.Text += $"Process name: {myProcess.ProcessName}\n";
+                labelProcessInfo.Text += $"Start time: {myProcess.StartTime}\n";
+                labelProcessInfo.Text += $"Processor time: {myProcess.TotalProcessorTime}\n";
+                labelProcessInfo.Text += $"Memory usage: {(float) (myProcess.WorkingSet64 / (1024 * 1024))}\n"; 
             }
             else
             {
@@ -83,8 +91,8 @@ namespace Processes
 
         private void listViewProcesses_MouseDoubleClick(object sender, MouseEventArgs e)
 		{
-            ProcessInfo(System.Diagnostics.Process.GetProcessById(Convert.ToInt32(listViewProcesses.SelectedItems[0].SubItems[0].Text)));
-
+            myProcess = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(listViewProcesses.SelectedItems[0].SubItems[0].Text));
+			ProcessInfo();
         }
     }
 }
